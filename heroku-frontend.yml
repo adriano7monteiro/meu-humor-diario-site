@@ -1,9 +1,0 @@
-# heroku.yml - Configuração para deploy do frontend
-# Use este arquivo para o app frontend
-
-build:
-  languages:
-    - nodejs
-
-run:
-  web: cd frontend && yarn build:web && npx serve dist -s -l $PORT
