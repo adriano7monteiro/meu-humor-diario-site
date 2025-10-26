@@ -144,7 +144,9 @@ export default function SubscriptionScreen() {
             window.location.href = response.data.checkout_url;
           }
         } else {
-          // For mobile, you might want to use WebView or similar
+          // For mobile (Android/iOS), open in external browser
+          const checkoutUrl = response.data.checkout_url;
+          
           Alert.alert(
             'Redirecionamento para Pagamento',
             'Você será redirecionado para a página de pagamento do Mercado Pago.',
@@ -155,9 +157,18 @@ export default function SubscriptionScreen() {
               },
               {
                 text: 'Continuar',
-                onPress: () => {
-                  // Open external URL (this would need proper handling in a real app)
-                  console.log('Redirect to:', response.data.checkout_url);
+                onPress: async () => {
+                  try {
+                    const canOpen = await Linking.canOpenURL(checkoutUrl);
+                    if (canOpen) {
+                      await Linking.openURL(checkoutUrl);
+                    } else {
+                      Alert.alert('Erro', 'Não foi possível abrir o navegador.');
+                    }
+                  } catch (error) {
+                    console.error('Error opening URL:', error);
+                    Alert.alert('Erro', 'Não foi possível abrir o link de pagamento.');
+                  }
                 }
               }
             ]
