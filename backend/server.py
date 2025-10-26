@@ -29,10 +29,12 @@ mongo_url = os.environ['MONGO_URL']
 client = AsyncIOMotorClient(mongo_url)
 db = client.get_database('mental_health_app')
 
-# Stripe configuration
-STRIPE_API_KEY = os.environ.get('STRIPE_API_KEY')
-if STRIPE_API_KEY:
-    stripe.api_key = STRIPE_API_KEY
+# Mercado Pago configuration
+MERCADO_PAGO_ACCESS_TOKEN = os.environ.get('MERCADO_PAGO_ACCESS_TOKEN')
+if MERCADO_PAGO_ACCESS_TOKEN:
+    sdk = mercadopago.SDK(MERCADO_PAGO_ACCESS_TOKEN)
+else:
+    sdk = None
 
 # Subscription-related classes
 class PlanType(str, Enum):
