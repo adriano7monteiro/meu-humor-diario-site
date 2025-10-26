@@ -25,7 +25,18 @@ interface AuthContextData {
   api: any; // Axios instance for API calls
 }
 
-const AuthContext = createContext<AuthContextData>({} as AuthContextData);
+const AuthContext = createContext<AuthContextData>({
+  user: null,
+  loading: true,
+  token: null,
+  signIn: async () => {},
+  signUp: async () => {},
+  signOut: async () => {},
+  enableNotifications: async () => false,
+  disableNotifications: async () => {},
+  areNotificationsEnabled: async () => false,
+  api: null,
+});
 
 // Always use environment variable for backend URL
 const API_BASE_URL = Constants.expoConfig?.extra?.EXPO_PUBLIC_BACKEND_URL || process.env.EXPO_PUBLIC_BACKEND_URL || 'https://vamos-comecar-2.preview.emergentagent.com';
