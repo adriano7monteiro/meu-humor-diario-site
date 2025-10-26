@@ -768,7 +768,9 @@ async def get_subscription_plans():
 async def get_subscription_status(current_user: User = Depends(get_current_user)):
     """Get user's current subscription status"""
     try:
+        logger.info(f"Fetching subscription for user_id: {current_user.id}")
         subscription_data = await db.user_subscriptions.find_one({"user_id": current_user.id})
+        logger.info(f"Subscription data found: {subscription_data}")
         
         if not subscription_data:
             return {
