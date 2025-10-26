@@ -8,6 +8,7 @@ import {
   Alert,
   ActivityIndicator,
   Platform,
+  Linking,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -117,15 +118,15 @@ export default function SubscriptionScreen() {
 
       const response = await api.post('/api/subscription/checkout', checkoutData);
       
-      if (response.data.url) {
-        // Redirect to Stripe checkout
+      if (response.data.checkout_url) {
+        // Redirect to Mercado Pago checkout
         if (Platform.OS === 'web') {
           // Check if we're in an iframe (like Expo preview)
           const isInIframe = window !== window.parent;
           
           if (isInIframe) {
             // Open in new window/tab to avoid iframe restrictions
-            const newWindow = window.open(response.data.url, '_blank', 'width=600,height=700');
+            const newWindow = window.open(response.data.checkout_url, '_blank', 'width=600,height=700');
             if (!newWindow) {
               Alert.alert(
                 'Popup Bloqueado',
@@ -133,20 +134,22 @@ export default function SubscriptionScreen() {
                 [
                   {
                     text: 'Tentar Novamente',
-                    onPress: () => window.open(response.data.url, '_blank')
+                    onPress: () => window.open(response.data.checkout_url, '_blank')
                   }
                 ]
               );
             }
           } else {
             // Direct redirect if not in iframe
-            window.location.href = response.data.url;
+            window.location.href = response.data.checkout_url;
           }
         } else {
-          // For mobile, you might want to use WebView or similar
+          // For mobile (Android/iOS), open in external browser
+          const checkoutUrl = response.data.checkout_url;
+          
           Alert.alert(
             'Redirecionamento para Pagamento',
-            'Você será redirecionado para a página de pagamento do Stripe.',
+            'Você será redirecionado para a página de pagamento do Mercado Pago.',
             [
               {
                 text: 'Cancelar',
@@ -154,9 +157,18 @@ export default function SubscriptionScreen() {
               },
               {
                 text: 'Continuar',
-                onPress: () => {
-                  // Open external URL (this would need proper handling in a real app)
-                  console.log('Redirect to:', response.data.url);
+                onPress: async () => {
+                  try {
+                    const canOpen = await Linking.canOpenURL(checkoutUrl);
+                    if (canOpen) {
+                      await Linking.openURL(checkoutUrl);
+                    } else {
+                      Alert.alert('Erro', 'Não foi possível abrir o navegador.');
+                    }
+                  } catch (error) {
+                    console.error('Error opening URL:', error);
+                    Alert.alert('Erro', 'Não foi possível abrir o link de pagamento.');
+                  }
                 }
               }
             ]
@@ -246,20 +258,20 @@ export default function SubscriptionScreen() {
     }
   };
 
-  // Check for session_id in URL (return from Stripe)
+  // Check for session_id in URL (return from Mercado Pago)
   useEffect(() => {
     if (Platform.OS === 'web') {
       const urlParams = new URLSearchParams(window.location.search);
       const sessionId = urlParams.get('session_id');
       if (sessionId) {
-        console.log('🔙 Returned from Stripe with session:', sessionId);
+        console.log('🔙 Returned from Mercado Pago with session:', sessionId);
         
         // Clear URL parameters immediately
         window.history.replaceState({}, document.title, window.location.pathname);
         
         // If user is not authenticated, redirect to home with success message
         if (!user) {
-          console.log('🔐 No user found after Stripe, assuming successful payment and redirecting to home');
+          console.log('🔐 No user found after Mercado Pago, assuming successful payment and redirecting to home');
           Alert.alert(
             'Pagamento Processado!',
             'Seu pagamento foi processado. Faça login para acessar sua assinatura.',
@@ -444,7 +456,7 @@ export default function SubscriptionScreen() {
         <View style={styles.securityNote}>
           <Ionicons name="shield-checkmark" size={20} color="#6B7280" />
           <Text style={styles.securityText}>
-            Pagamentos seguros processados pelo Stripe
+            Pagamentos seguros processados pelo Mercado Pago
           </Text>
         </View>
       </ScrollView>
