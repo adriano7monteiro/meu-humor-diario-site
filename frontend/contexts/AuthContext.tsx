@@ -15,6 +15,7 @@ interface User {
 interface AuthContextData {
   user: User | null;
   loading: boolean;
+  token: string | null;
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (name: string, email: string, password: string, confirmPassword: string) => Promise<void>;
   signOut: () => Promise<void>;
@@ -316,6 +317,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       value={{
         user,
         loading,
+        token,
         signIn,
         signUp,
         signOut,
