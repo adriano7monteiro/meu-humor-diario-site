@@ -843,7 +843,7 @@ async def create_checkout_session(request: CreateCheckoutRequest, current_user: 
         # Create preapproval (recurring subscription)
         preapproval_data = {
             "payer_email": current_user.email,
-            "back_url": request.success_url,
+            "back_url": request.success_url,  # Use URL without placeholder
             "reason": f"Assinatura - {plan['name']}",
             "external_reference": f"{current_user.id}_{plan['id']}_{int(start_date.timestamp())}",
             "auto_recurring": {
@@ -852,8 +852,7 @@ async def create_checkout_session(request: CreateCheckoutRequest, current_user: 
                 "transaction_amount": float(plan['price']),
                 "currency_id": "BRL",
                 "start_date": start_date_str,
-            },
-            "status": "pending"
+            }
         }
         
         logger.info(f"Creating preapproval for user {current_user.email}: {preapproval_data}")
