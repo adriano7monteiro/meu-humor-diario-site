@@ -177,7 +177,7 @@ export default function SubscriptionScreen() {
         console.log('💰 Payment confirmed! Redirecting to home...');
         
         // Refresh subscription context and local data
-        await refreshSubscriptionStatus();
+        await refreshSubscription();
         await loadData();
         
         Alert.alert(
