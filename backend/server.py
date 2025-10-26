@@ -876,7 +876,7 @@ async def create_checkout_session(request: CreateCheckoutRequest, current_user: 
         
         await db.payment_transactions.insert_one(transaction.dict())
         
-        return {"checkout_url": session.url, "session_id": session.id}
+        return {"checkout_url": preference["init_point"], "session_id": preference["id"]}
         
     except HTTPException:
         raise
