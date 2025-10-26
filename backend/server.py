@@ -14,7 +14,7 @@ from datetime import datetime, timedelta
 import bcrypt
 from jose import JWTError, jwt
 import re
-import stripe
+import mercadopago
 from openai import AsyncOpenAI
 from models.chat import ChatMessage, ChatConversation, SendMessageRequest, ChatResponse, MessageRole
 from models.missions import Mission, MissionCategory, MissionDifficulty, DailyMissionSet, UserMissionProgress
