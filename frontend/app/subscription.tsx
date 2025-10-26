@@ -112,7 +112,7 @@ export default function SubscriptionScreen() {
       
       const checkoutData = {
         plan_id: planId,
-        success_url: `${origin}/subscription?session_id={CHECKOUT_SESSION_ID}`,
+        success_url: `${origin}/subscription`,  // Removed placeholder - MP doesn't accept it
         cancel_url: `${origin}/subscription`
       };
 
