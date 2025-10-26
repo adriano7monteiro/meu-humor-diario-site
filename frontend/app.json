@@ -8,6 +8,9 @@
     "scheme": "frontend",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
+    "extra": {
+      "EXPO_PUBLIC_BACKEND_URL": "https://vamos-comecar-2.preview.emergentagent.com"
+    },
     "ios": {
       "supportsTablet": true
     },
