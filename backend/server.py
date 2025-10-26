@@ -276,7 +276,7 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
         raise credentials_exception
     
     return User(
-        id=str(user['_id']),  # Use _id from MongoDB
+        id=user.get('id', str(user['_id'])),  # Prefer 'id' field, fallback to _id
         name=user['name'],
         email=user['email'],
         profile_photo=user.get('profile_photo'),
