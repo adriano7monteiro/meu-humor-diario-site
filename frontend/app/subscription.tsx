@@ -117,15 +117,15 @@ export default function SubscriptionScreen() {
 
       const response = await api.post('/api/subscription/checkout', checkoutData);
       
-      if (response.data.url) {
-        // Redirect to Stripe checkout
+      if (response.data.checkout_url) {
+        // Redirect to Mercado Pago checkout
         if (Platform.OS === 'web') {
           // Check if we're in an iframe (like Expo preview)
           const isInIframe = window !== window.parent;
           
           if (isInIframe) {
             // Open in new window/tab to avoid iframe restrictions
-            const newWindow = window.open(response.data.url, '_blank', 'width=600,height=700');
+            const newWindow = window.open(response.data.checkout_url, '_blank', 'width=600,height=700');
             if (!newWindow) {
               Alert.alert(
                 'Popup Bloqueado',
@@ -133,20 +133,20 @@ export default function SubscriptionScreen() {
                 [
                   {
                     text: 'Tentar Novamente',
-                    onPress: () => window.open(response.data.url, '_blank')
+                    onPress: () => window.open(response.data.checkout_url, '_blank')
                   }
                 ]
               );
             }
           } else {
             // Direct redirect if not in iframe
-            window.location.href = response.data.url;
+            window.location.href = response.data.checkout_url;
           }
         } else {
           // For mobile, you might want to use WebView or similar
           Alert.alert(
             'Redirecionamento para Pagamento',
-            'Você será redirecionado para a página de pagamento do Stripe.',
+            'Você será redirecionado para a página de pagamento do Mercado Pago.',
             [
               {
                 text: 'Cancelar',
@@ -156,7 +156,7 @@ export default function SubscriptionScreen() {
                 text: 'Continuar',
                 onPress: () => {
                   // Open external URL (this would need proper handling in a real app)
-                  console.log('Redirect to:', response.data.url);
+                  console.log('Redirect to:', response.data.checkout_url);
                 }
               }
             ]
