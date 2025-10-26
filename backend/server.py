@@ -2380,10 +2380,10 @@ async def get_checkout_status(
         
         return {
             "session_id": session_id,
-            "status": status_response.status,
-            "payment_status": status_response.payment_status,
-            "amount_total": status_response.amount_total,
-            "currency": status_response.currency
+            "status": session.status,
+            "payment_status": session.payment_status,
+            "amount_total": session.amount_total,
+            "currency": session.currency
         }
         
     except HTTPException:
