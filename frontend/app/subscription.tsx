@@ -62,7 +62,14 @@ export default function SubscriptionScreen() {
         // The API returns { plans: [...] } so access .plans
         const plansData = plansResponse.data.plans || [];
         console.log('✅ Plans data:', plansData.length, 'plans found');
-        setPlans(plansData);
+        
+        // Remove duplicates based on id
+        const uniquePlans = plansData.filter((plan: any, index: number, self: any[]) => 
+          index === self.findIndex((p: any) => p.id === plan.id)
+        );
+        console.log('✅ Unique plans:', uniquePlans.length);
+        
+        setPlans(uniquePlans);
       } catch (plansError) {
         console.error('❌ Error loading plans:', plansError);
         Alert.alert('Erro', 'Falha ao carregar planos de assinatura');
