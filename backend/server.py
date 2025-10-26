@@ -886,55 +886,46 @@ async def create_checkout_session(request: CreateCheckoutRequest, current_user: 
 
 @api_router.get("/subscription/checkout/status/{session_id}")
 async def get_checkout_status(session_id: str, current_user: User = Depends(get_current_user)):
-    """Get status of a checkout session"""
+    """Get status of a Mercado Pago checkout preference"""
     try:
-        if not STRIPE_API_KEY:
-            raise HTTPException(status_code=500, detail="Stripe not configured")
+        if not sdk:
+            raise HTTPException(status_code=500, detail="Mercado Pago not configured")
         
-        # Get checkout session from Stripe
-        session = stripe.checkout.Session.retrieve(session_id)
-        
-        # Get current transaction
+        # Get transaction from database
         transaction = await db.payment_transactions.find_one({"stripe_session_id": session_id})
         
         if not transaction:
             raise HTTPException(status_code=404, detail="Transaction not found")
         
+        # Try to get payment info from Mercado Pago
+        # Note: We need the payment_id, not preference_id to get payment status
+        # For now, we'll return the transaction status from our database
+        
+        payment_status = transaction.get("payment_status", "pending")
+        
         # If payment is completed but transaction is still pending, process it
-        if session.payment_status == "paid" and transaction.get("payment_status") == "pending":
-            logger.info(f"Processing completed payment for session {session_id}")
-            
-            # Update transaction status
-            await db.payment_transactions.update_one(
-                {"stripe_session_id": session_id},
-                {"$set": {
-                    "payment_status": "paid",
-                    "updated_at": datetime.utcnow()
-                }}
-            )
+        if payment_status == "paid" and transaction.get("subscription_activated") != True:
+            logger.info(f"Processing completed payment for preference {session_id}")
             
             # Activate subscription
             success = await activate_subscription(transaction['user_id'], transaction['plan_id'])
             if success:
                 logger.info(f"Subscription activated for user {transaction['user_id']}")
+                await db.payment_transactions.update_one(
+                    {"stripe_session_id": session_id},
+                    {"$set": {
+                        "subscription_activated": True,
+                        "updated_at": datetime.utcnow()
+                    }}
+                )
             else:
                 logger.error(f"Failed to activate subscription for user {transaction['user_id']}")
         
-        # Update transaction with current status if needed
-        elif transaction.get("payment_status") != session.payment_status:
-            await db.payment_transactions.update_one(
-                {"stripe_session_id": session_id},
-                {"$set": {
-                    "payment_status": session.payment_status,
-                    "updated_at": datetime.utcnow()
-                }}
-            )
-        
         return {
-            "status": session.status,
-            "payment_status": session.payment_status,
-            "amount_total": session.amount_total,
-            "currency": session.currency
+            "status": "active" if payment_status == "paid" else "pending",
+            "payment_status": payment_status,
+            "amount_total": transaction.get("amount", 0) * 100,  # Convert to cents for compatibility
+            "currency": transaction.get("currency", "brl")
         }
         
     except Exception as e:
