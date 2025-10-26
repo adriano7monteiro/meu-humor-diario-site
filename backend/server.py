@@ -1119,16 +1119,12 @@ async def send_chat_message(request: SendMessageRequest, current_user: User = De
         # Create system message with therapist persona and user context
         system_message = create_therapist_system_message(user_context)
         
-        # Initialize Gemini chat
-        EMERGENT_LLM_KEY = os.environ.get('EMERGENT_LLM_KEY')
-        if not EMERGENT_LLM_KEY:
-            raise HTTPException(status_code=500, detail="LLM key not configured")
+        # Initialize OpenAI chat
+        OPENAI_API_KEY = os.environ.get('OPENAI_API_KEY')
+        if not OPENAI_API_KEY:
+            raise HTTPException(status_code=500, detail="OpenAI API key not configured")
             
-        chat = LlmChat(
-            api_key=EMERGENT_LLM_KEY,
-            session_id=conversation_id,
-            system_message=system_message
-        ).with_model("gemini", "gemini-2.0-flash")
+        client = AsyncOpenAI(api_key=OPENAI_API_KEY)
         
         # Load conversation history
         messages = await db.chat_messages.find({
@@ -1136,9 +1132,26 @@ async def send_chat_message(request: SendMessageRequest, current_user: User = De
             "user_id": current_user.id
         }).sort("timestamp", 1).limit(20).to_list(20)
         
-        # Send message to AI (include recent history in context)
-        user_message = UserMessage(text=request.message)
-        ai_response = await chat.send_message(user_message)
+        # Build conversation history for OpenAI
+        chat_history = [{"role": "system", "content": system_message}]
+        for msg in messages:
+            chat_history.append({
+                "role": "user" if msg["role"] == "user" else "assistant",
+                "content": msg["content"]
+            })
+        
+        # Add current message
+        chat_history.append({"role": "user", "content": request.message})
+        
+        # Send message to OpenAI
+        response = await client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=chat_history,
+            temperature=0.7,
+            max_tokens=500
+        )
+        
+        ai_response = response.choices[0].message.content
         
         # Save user message
         user_msg_id = str(uuid.uuid4())
