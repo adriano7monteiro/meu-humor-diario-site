@@ -941,43 +941,52 @@ async def get_checkout_status(session_id: str, current_user: User = Depends(get_
         logger.error(f"Error getting checkout status: {e}")
         raise HTTPException(status_code=500, detail="Failed to get checkout status")
 
-@api_router.post("/webhook/stripe")
-async def stripe_webhook(request: Request):
-    """Handle Stripe webhooks"""
+@api_router.post("/webhook/mercadopago")
+async def mercadopago_webhook(request: Request):
+    """Handle Mercado Pago webhooks"""
     try:
         body = await request.body()
-        stripe_signature = request.headers.get("Stripe-Signature")
         
-        if not STRIPE_API_KEY:
-            raise HTTPException(status_code=500, detail="Stripe not configured")
+        if not sdk:
+            raise HTTPException(status_code=500, detail="Mercado Pago not configured")
         
-        # For now, we'll handle webhooks manually without signature verification
-        # In production, you should verify the webhook signature
-        logger.info("Received Stripe webhook")
-        
-        # Parse the webhook event
+        # Parse the webhook notification
         try:
-            event = stripe.Event.construct_from(
-                body.decode('utf-8'), STRIPE_API_KEY
-            )
+            data = json.loads(body.decode('utf-8'))
         except ValueError:
             logger.error("Invalid payload in webhook")
             raise HTTPException(status_code=400, detail="Invalid payload")
         
-        # Handle the event
-        if event['type'] == 'checkout.session.completed':
-            session = event['data']['object']
-            session_id = session['id']
+        logger.info(f"Received Mercado Pago webhook: {data}")
+        
+        # Handle the notification
+        if data.get('type') == 'payment':
+            payment_id = data['data']['id']
             
-            # Find the transaction
+            # Get payment details from Mercado Pago
+            payment_info = sdk.payment().get(payment_id)
+            payment = payment_info["response"]
+            
+            # Find the transaction using preference_id or external_reference
+            preference_id = payment.get('external_reference') or payment.get('metadata', {}).get('preference_id')
+            
             transaction = await db.payment_transactions.find_one({
-                "stripe_session_id": session_id
+                "stripe_session_id": preference_id  # Reusing field for MP preference_id
             })
             
             if transaction:
-                # Update transaction status
+                # Update transaction status based on payment status
+                payment_status = payment['status']
+                
+                if payment_status == 'approved':
+                    status = "paid"
+                elif payment_status in ['pending', 'in_process', 'in_mediation']:
+                    status = "pending"
+                else:
+                    status = "failed"
+                
                 await db.payment_transactions.update_one(
-                    {"stripe_session_id": session_id},
+                    {"stripe_session_id": preference_id},
                     {"$set": {
                         "payment_status": "paid",
                         "updated_at": datetime.utcnow()
