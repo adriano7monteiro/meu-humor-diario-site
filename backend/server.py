@@ -869,11 +869,22 @@ async def create_checkout_session(request: CreateCheckoutRequest, current_user: 
         preapproval = preapproval_response["response"]
         
         logger.info(f"Preapproval object: {preapproval}")
-        logger.info(f"Preapproval created: {preapproval.get('id')}")
         
-        if not preapproval.get('id'):
+        # Get preapproval ID
+        preapproval_id = preapproval.get('id')
+        if not preapproval_id:
             logger.error(f"Preapproval ID is None. Full response: {preapproval}")
             raise HTTPException(status_code=500, detail="Failed to get preapproval ID from Mercado Pago")
+        
+        logger.info(f"Preapproval created: {preapproval_id}")
+        
+        # Get init_point (checkout URL) - try sandbox_init_point first for testing
+        checkout_url = preapproval.get('sandbox_init_point') or preapproval.get('init_point')
+        if not checkout_url:
+            logger.error(f"No init_point found. Full response: {preapproval}")
+            raise HTTPException(status_code=500, detail="Failed to get checkout URL from Mercado Pago")
+        
+        logger.info(f"Checkout URL: {checkout_url}")
         
         # Create payment transaction record
         transaction = PaymentTransaction(
