@@ -2306,7 +2306,7 @@ async def create_checkout_session(
         # Create payment transaction record
         transaction = PaymentTransaction(
             user_id=current_user.id,
-            session_id=session.session_id,
+            session_id=session.id,
             amount=package.price,
             currency=package.currency,
             payment_status="pending",
@@ -2324,7 +2324,7 @@ async def create_checkout_session(
         
         return {
             "url": session.url,
-            "session_id": session.session_id
+            "session_id": session.id
         }
         
     except HTTPException:
