@@ -444,7 +444,7 @@ export default function SubscriptionScreen() {
         <View style={styles.securityNote}>
           <Ionicons name="shield-checkmark" size={20} color="#6B7280" />
           <Text style={styles.securityText}>
-            Pagamentos seguros processados pelo Stripe
+            Pagamentos seguros processados pelo Mercado Pago
           </Text>
         </View>
       </ScrollView>
