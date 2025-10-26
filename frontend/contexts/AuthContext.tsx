@@ -27,8 +27,10 @@ interface AuthContextData {
 const AuthContext = createContext<AuthContextData>({} as AuthContextData);
 
 // Always use environment variable for backend URL
-const API_BASE_URL = Constants.expoConfig?.extra?.EXPO_PUBLIC_BACKEND_URL || process.env.EXPO_PUBLIC_BACKEND_URL || '';
+const API_BASE_URL = Constants.expoConfig?.extra?.EXPO_PUBLIC_BACKEND_URL || process.env.EXPO_PUBLIC_BACKEND_URL || 'https://vamos-comecar-2.preview.emergentagent.com';
 console.log('🌐 API Base URL:', API_BASE_URL);
+console.log('🌐 Constants.expoConfig?.extra:', Constants.expoConfig?.extra);
+console.log('🌐 process.env.EXPO_PUBLIC_BACKEND_URL:', process.env.EXPO_PUBLIC_BACKEND_URL);
 console.log('🌐 Platform:', Platform.OS);
 
 // Create axios instance
