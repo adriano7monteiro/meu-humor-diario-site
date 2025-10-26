@@ -2271,18 +2271,27 @@ async def create_checkout_session(
         
         package = EBOOK_PACKAGES[request.ebook_id]
         
-        # Initialize Stripe checkout
-        webhook_url = f"{request.origin_url}/api/webhook/stripe"
-        stripe_checkout = StripeCheckout(api_key=STRIPE_API_KEY, webhook_url=webhook_url)
+        # Create Stripe checkout session
+        if not STRIPE_API_KEY:
+            raise HTTPException(status_code=500, detail="Stripe not configured")
         
-        # Create checkout session URLs
         success_url = f"{request.origin_url}/store/success?session_id={{CHECKOUT_SESSION_ID}}"
         cancel_url = f"{request.origin_url}/store"
         
-        # Create checkout session request
-        checkout_request = CheckoutSessionRequest(
-            amount=package.price,
-            currency=package.currency,
+        session = stripe.checkout.Session.create(
+            payment_method_types=['card'],
+            line_items=[{
+                'price_data': {
+                    'currency': package.currency,
+                    'unit_amount': int(package.price * 100),
+                    'product_data': {
+                        'name': package.title,
+                        'description': package.description
+                    },
+                },
+                'quantity': 1,
+            }],
+            mode='payment',
             success_url=success_url,
             cancel_url=cancel_url,
             metadata={
@@ -2292,9 +2301,6 @@ async def create_checkout_session(
                 "user_email": current_user.email
             }
         )
-        
-        # Create session with Stripe
-        session = await stripe_checkout.create_checkout_session(checkout_request)
         
         # Create payment transaction record
         transaction = PaymentTransaction(
