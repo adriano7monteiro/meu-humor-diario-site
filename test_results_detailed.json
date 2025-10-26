@@ -1,58 +1,58 @@
 {
   "summary": {
-    "passed": 5,
+    "passed": 7,
     "total": 7,
-    "success_rate": "71.4%"
+    "success_rate": "100.0%"
   },
   "results": [
     {
       "test": "User Registration",
       "success": true,
-      "message": "User registered successfully with ID: ca622ef0-42b8-437a-94ae-09171089bfd7",
+      "message": "User registered successfully with ID: 88cd30f1-2249-4f48-b8cb-93cfa2f287fd",
       "details": null,
-      "timestamp": "2025-10-26T20:09:33.736803"
+      "timestamp": "2025-10-26T20:10:37.659082"
     },
     {
       "test": "Subscription Plans",
       "success": true,
       "message": "Found 3 plans including monthly plan",
       "details": null,
-      "timestamp": "2025-10-26T20:09:33.818494"
+      "timestamp": "2025-10-26T20:10:37.745932"
     },
     {
       "test": "Preapproval Checkout Creation",
-      "success": false,
-      "message": "Failed to create checkout, status: 500",
-      "details": "{\"detail\":\"Failed to create checkout session\"}",
-      "timestamp": "2025-10-26T20:09:33.978399"
+      "success": true,
+      "message": "Preapproval created successfully with session_id: 207376992-b42e56c4-98cd-4e32-9bbd-5e20595e3b19",
+      "details": null,
+      "timestamp": "2025-10-26T20:10:37.985482"
     },
     {
       "test": "Webhook Preapproval Handler",
       "success": true,
       "message": "Webhook processed successfully",
       "details": null,
-      "timestamp": "2025-10-26T20:09:34.121532"
+      "timestamp": "2025-10-26T20:10:38.126869"
     },
     {
       "test": "Webhook Recurring Payment Handler",
       "success": true,
       "message": "Recurring payment webhook processed successfully",
       "details": null,
-      "timestamp": "2025-10-26T20:09:34.313800"
+      "timestamp": "2025-10-26T20:10:38.321232"
     },
     {
       "test": "Subscription Status Check",
       "success": true,
       "message": "Status retrieved: free_trial, has_subscription: True",
       "details": null,
-      "timestamp": "2025-10-26T20:09:34.350911"
+      "timestamp": "2025-10-26T20:10:38.360362"
     },
     {
       "test": "Checkout Status Check",
-      "success": false,
-      "message": "Failed to get checkout status, code: 500",
-      "details": "{\"detail\":\"Failed to get checkout status\"}",
-      "timestamp": "2025-10-26T20:09:34.434598"
+      "success": true,
+      "message": "Checkout status: pending, payment_status: pending",
+      "details": null,
+      "timestamp": "2025-10-26T20:10:38.441376"
     }
   ]
 }
