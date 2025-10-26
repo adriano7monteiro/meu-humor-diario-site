@@ -2,7 +2,6 @@
 # yarn lockfile v1
 
 
-
 "@0no-co/graphql.web@^1.0.13", "@0no-co/graphql.web@^1.0.8":
   version "1.2.0"
   resolved "https://registry.yarnpkg.com/@0no-co/graphql.web/-/graphql.web-1.2.0.tgz#296d00581bfaaabfda1e976849d927824aaea81b"
