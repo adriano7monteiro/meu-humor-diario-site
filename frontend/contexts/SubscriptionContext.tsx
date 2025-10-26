@@ -1,5 +1,9 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { useAuth } from './AuthContext';
+import axios from 'axios';
+import Constants from 'expo-constants';
+
+const API_BASE_URL = Constants.expoConfig?.extra?.EXPO_PUBLIC_BACKEND_URL || process.env.EXPO_PUBLIC_BACKEND_URL || '';
 
 interface SubscriptionStatus {
   has_subscription: boolean;
@@ -18,7 +22,7 @@ interface SubscriptionContextData {
 const SubscriptionContext = createContext<SubscriptionContextData>({} as SubscriptionContextData);
 
 export function SubscriptionProvider({ children }: { children: React.ReactNode }) {
-  const { user } = useAuth();
+  const { user, token } = useAuth();
   const [subscriptionStatus, setSubscriptionStatus] = useState<SubscriptionStatus | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -32,12 +36,15 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
   }, [user]);
 
   async function refreshSubscription() {
-    if (!user) return;
+    if (!user || !token) return;
     
     try {
       setLoading(true);
-      const { api } = await import('./AuthContext');
-      const response = await api.get('/api/subscription/status');
+      const response = await axios.get(`${API_BASE_URL}/api/subscription/status`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
       setSubscriptionStatus(response.data);
     } catch (error) {
       console.error('Error fetching subscription status:', error);
