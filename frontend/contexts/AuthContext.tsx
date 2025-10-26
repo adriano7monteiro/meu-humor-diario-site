@@ -317,6 +317,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       value={{
         user,
         loading,
+        token,
         signIn,
         signUp,
         signOut,
