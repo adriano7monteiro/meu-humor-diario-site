@@ -823,58 +823,60 @@ async def get_subscription_status(current_user: User = Depends(get_current_user)
 
 @api_router.post("/subscription/checkout")
 async def create_checkout_session(request: CreateCheckoutRequest, current_user: User = Depends(get_current_user)):
-    """Create Mercado Pago checkout preference for subscription"""
+    """Create Mercado Pago recurring subscription (preapproval)"""
     try:
         # Get the plan details
         plan = await db.subscription_plans.find_one({"id": request.plan_id, "is_active": True})
         if not plan:
             raise HTTPException(status_code=404, detail="Plan not found")
         
-        # Create Mercado Pago checkout preference
+        # Create Mercado Pago recurring subscription (preapproval)
         if not sdk:
             raise HTTPException(status_code=500, detail="Mercado Pago not configured")
         
-        preference_data = {
-            "items": [{
-                "title": plan['name'],
-                "description": plan.get('description', ''),
-                "quantity": 1,
-                "unit_price": float(plan['price']),
-                "currency_id": "BRL"
-            }],
-            "payer": {
-                "name": current_user.name,
-                "email": current_user.email
+        # Calculate start and end dates
+        from datetime import datetime, timedelta
+        start_date = datetime.utcnow()
+        # Convert to ISO format with timezone
+        start_date_str = start_date.strftime("%Y-%m-%dT%H:%M:%S") + "-03:00"
+        
+        # Create preapproval (recurring subscription)
+        preapproval_data = {
+            "payer_email": current_user.email,
+            "back_url": request.success_url,
+            "reason": f"Assinatura - {plan['name']}",
+            "external_reference": f"{current_user.id}_{plan['id']}_{int(start_date.timestamp())}",
+            "auto_recurring": {
+                "frequency": 1,
+                "frequency_type": "months",
+                "transaction_amount": float(plan['price']),
+                "currency_id": "BRL",
+                "start_date": start_date_str,
             },
-            "back_urls": {
-                "success": request.success_url,
-                "failure": request.cancel_url,
-                "pending": request.cancel_url
-            },
-            "auto_return": "approved",
-            "metadata": {
-                "user_id": current_user.id,
-                "plan_id": request.plan_id,
-                "plan_name": plan['name']
-            },
-            "notification_url": f"{request.success_url.split('/subscription')[0]}/api/webhook/mercadopago"
+            "status": "pending"
         }
         
-        preference_response = sdk.preference().create(preference_data)
-        preference = preference_response["response"]
+        logger.info(f"Creating preapproval for user {current_user.email}: {preapproval_data}")
+        
+        preapproval_response = sdk.preapproval().create(preapproval_data)
+        preapproval = preapproval_response["response"]
+        
+        logger.info(f"Preapproval created: {preapproval.get('id')}")
         
         # Create payment transaction record
         transaction = PaymentTransaction(
             user_id=current_user.id,
             plan_id=request.plan_id,
-            stripe_session_id=preference["id"],  # Reusing field for MP preference_id
+            stripe_session_id=preapproval["id"],  # Store preapproval ID
             amount=plan['price'],
             currency="brl",
             payment_status="pending",
             metadata={
                 "user_id": current_user.id,
                 "plan_id": request.plan_id,
-                "plan_name": plan['name']
+                "plan_name": plan['name'],
+                "preapproval_id": preapproval["id"],
+                "subscription_type": "recurring"
             }
         )
         
