@@ -37,7 +37,7 @@ interface SubscriptionStatus {
 
 export default function SubscriptionScreen() {
   const { user, api } = useAuth();
-  const { refreshSubscriptionStatus } = useSubscription();
+  const { refreshSubscription } = useSubscription();
   const router = useRouter();
   const [plans, setPlans] = useState<SubscriptionPlan[]>([]);
   const [subscriptionStatus, setSubscriptionStatus] = useState<SubscriptionStatus | null>(null);
