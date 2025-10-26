@@ -859,15 +859,38 @@ async def create_checkout_session(request: CreateCheckoutRequest, current_user: 
         logger.info(f"Creating preapproval for user {current_user.email}: {preapproval_data}")
         
         preapproval_response = sdk.preapproval().create(preapproval_data)
+        logger.info(f"Full preapproval response: {preapproval_response}")
+        
+        # Check response structure
+        if "response" not in preapproval_response:
+            logger.error(f"Unexpected response structure: {preapproval_response}")
+            raise HTTPException(status_code=500, detail="Invalid Mercado Pago response")
+        
         preapproval = preapproval_response["response"]
         
-        logger.info(f"Preapproval created: {preapproval.get('id')}")
+        logger.info(f"Preapproval object: {preapproval}")
+        
+        # Get preapproval ID
+        preapproval_id = preapproval.get('id')
+        if not preapproval_id:
+            logger.error(f"Preapproval ID is None. Full response: {preapproval}")
+            raise HTTPException(status_code=500, detail="Failed to get preapproval ID from Mercado Pago")
+        
+        logger.info(f"Preapproval created: {preapproval_id}")
+        
+        # Get init_point (checkout URL) - try sandbox_init_point first for testing
+        checkout_url = preapproval.get('sandbox_init_point') or preapproval.get('init_point')
+        if not checkout_url:
+            logger.error(f"No init_point found. Full response: {preapproval}")
+            raise HTTPException(status_code=500, detail="Failed to get checkout URL from Mercado Pago")
+        
+        logger.info(f"Checkout URL: {checkout_url}")
         
         # Create payment transaction record
         transaction = PaymentTransaction(
             user_id=current_user.id,
             plan_id=request.plan_id,
-            stripe_session_id=preapproval["id"],  # Store preapproval ID
+            stripe_session_id=preapproval_id,  # Store preapproval ID
             amount=plan['price'],
             currency="brl",
             payment_status="pending",
@@ -875,14 +898,14 @@ async def create_checkout_session(request: CreateCheckoutRequest, current_user: 
                 "user_id": current_user.id,
                 "plan_id": request.plan_id,
                 "plan_name": plan['name'],
-                "preapproval_id": preapproval["id"],
+                "preapproval_id": preapproval_id,
                 "subscription_type": "recurring"
             }
         )
         
         await db.payment_transactions.insert_one(transaction.dict())
         
-        return {"checkout_url": preapproval["init_point"], "session_id": preapproval["id"]}
+        return {"checkout_url": checkout_url, "session_id": preapproval_id}
         
     except HTTPException:
         raise
