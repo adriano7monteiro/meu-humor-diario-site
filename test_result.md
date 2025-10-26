@@ -107,27 +107,33 @@ user_problem_statement: "Implementar pagamentos recorrentes usando a API de prea
 backend:
   - task: "Implementar preapproval API do Mercado Pago"
     implemented: true
-    working: "NA"  # Precisa de teste
+    working: true
     file: "backend/server.py"
     stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: "NA"
         agent: "main"
         comment: "Implementada a função create_checkout_session com preapproval API do Mercado Pago. Corrigido return statement que estava usando variável 'preference' ao invés de 'preapproval'."
+      - working: true
+        agent: "testing"
+        comment: "✅ TESTADO E FUNCIONANDO: API de preapproval testada com sucesso. Endpoint POST /api/subscription/checkout cria corretamente preapprovals recorrentes do Mercado Pago. Retorna checkout_url válido e session_id. Transação armazenada com metadados corretos incluindo preapproval_id e subscription_type=recurring. Usa corretamente preapproval['init_point'] conforme especificado."
   
   - task: "Webhook handler para preapprovals recorrentes"
     implemented: true
-    working: "NA"
+    working: true
     file: "backend/server.py"
     stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: "NA"
         agent: "main"
         comment: "Atualizado webhook do Mercado Pago para lidar com eventos de preapproval (subscription_preapproval e payment.updated). Implementado suporte para pagamentos recorrentes e renovações automáticas."
+      - working: true
+        agent: "testing"
+        comment: "✅ TESTADO E FUNCIONANDO: Webhook handler testado com sucesso. Processa corretamente eventos subscription_preapproval e payment.updated. Lida adequadamente com status 'authorized', 'pending', 'paused', 'cancelled' e 'finished'. Suporte para pagamentos recorrentes subsequentes implementado. Ativa assinaturas corretamente via activate_subscription()."
 
 frontend:
   - task: "Integração com checkout de preapproval"
