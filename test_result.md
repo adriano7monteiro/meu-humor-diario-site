@@ -101,3 +101,61 @@
 #====================================================================================================
 # Testing Data - Main Agent and testing sub agent both should log testing data below this section
 #====================================================================================================
+
+user_problem_statement: "Implementar pagamentos recorrentes usando a API de preapproval do Mercado Pago para substituir o sistema de pagamento único existente"
+
+backend:
+  - task: "Implementar preapproval API do Mercado Pago"
+    implemented: true
+    working: "NA"  # Precisa de teste
+    file: "backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Implementada a função create_checkout_session com preapproval API do Mercado Pago. Corrigido return statement que estava usando variável 'preference' ao invés de 'preapproval'."
+  
+  - task: "Webhook handler para preapprovals recorrentes"
+    implemented: true
+    working: "NA"
+    file: "backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Atualizado webhook do Mercado Pago para lidar com eventos de preapproval (subscription_preapproval e payment.updated). Implementado suporte para pagamentos recorrentes e renovações automáticas."
+
+frontend:
+  - task: "Integração com checkout de preapproval"
+    implemented: true
+    working: "NA"
+    file: "frontend/app/subscription.tsx"
+    stuck_count: 0
+    priority: "medium"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Frontend já estava configurado para usar checkout_url do backend. Deve funcionar com preapproval sem modificações."
+
+metadata:
+  created_by: "main_agent"
+  version: "1.0"
+  test_sequence: 0
+  run_ui: false
+
+test_plan:
+  current_focus:
+    - "Implementar preapproval API do Mercado Pago"
+    - "Webhook handler para preapprovals recorrentes"
+  stuck_tasks: []
+  test_all: false
+  test_priority: "high_first"
+
+agent_communication:
+  - agent: "main"
+    message: "Implementação do Mercado Pago preapproval API concluída. Alterações feitas: 1) Corrigido return statement em create_checkout_session para usar 'preapproval' ao invés de 'preference', 2) Atualizado webhook handler para lidar com eventos de preapproval e pagamentos recorrentes. Pronto para teste do backend."
