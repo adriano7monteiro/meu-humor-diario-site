@@ -823,15 +823,24 @@ async def create_checkout_session(request: CreateCheckoutRequest, current_user: 
         if not plan:
             raise HTTPException(status_code=404, detail="Plan not found")
         
-        # Initialize Stripe checkout
-        host_url = request.success_url.split('/')[0] + '//' + request.success_url.split('/')[2]
-        webhook_url = f"{host_url}/api/webhook/stripe"
-        stripe_checkout = StripeCheckout(api_key=STRIPE_API_KEY, webhook_url=webhook_url)
+        # Create Stripe checkout session
+        if not STRIPE_API_KEY:
+            raise HTTPException(status_code=500, detail="Stripe not configured")
         
-        # Create checkout session
-        checkout_request = CheckoutSessionRequest(
-            amount=plan['price'],
-            currency="brl",
+        session = stripe.checkout.Session.create(
+            payment_method_types=['card'],
+            line_items=[{
+                'price_data': {
+                    'currency': 'brl',
+                    'unit_amount': int(plan['price'] * 100),  # Convert to cents
+                    'product_data': {
+                        'name': plan['name'],
+                        'description': plan.get('description', '')
+                    },
+                },
+                'quantity': 1,
+            }],
+            mode='payment',
             success_url=request.success_url,
             cancel_url=request.cancel_url,
             metadata={
@@ -840,8 +849,6 @@ async def create_checkout_session(request: CreateCheckoutRequest, current_user: 
                 "plan_name": plan['name']
             }
         )
-        
-        session = await stripe_checkout.create_checkout_session(checkout_request)
         
         # Create payment transaction record
         transaction = PaymentTransaction(
