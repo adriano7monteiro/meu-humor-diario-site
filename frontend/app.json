@@ -9,7 +9,7 @@
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "extra": {
-      "EXPO_PUBLIC_BACKEND_URL": "https://vamos-comecar-2.preview.emergentagent.com"
+      "EXPO_PUBLIC_BACKEND_URL": "https://meu-humor-diario-backend-de811f34620e.herokuapp.com"
     },
     "ios": {
       "supportsTablet": true
