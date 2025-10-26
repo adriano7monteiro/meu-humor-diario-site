@@ -1,0 +1,58 @@
+{
+  "summary": {
+    "passed": 5,
+    "total": 7,
+    "success_rate": "71.4%"
+  },
+  "results": [
+    {
+      "test": "User Registration",
+      "success": true,
+      "message": "User registered successfully with ID: ca622ef0-42b8-437a-94ae-09171089bfd7",
+      "details": null,
+      "timestamp": "2025-10-26T20:09:33.736803"
+    },
+    {
+      "test": "Subscription Plans",
+      "success": true,
+      "message": "Found 3 plans including monthly plan",
+      "details": null,
+      "timestamp": "2025-10-26T20:09:33.818494"
+    },
+    {
+      "test": "Preapproval Checkout Creation",
+      "success": false,
+      "message": "Failed to create checkout, status: 500",
+      "details": "{\"detail\":\"Failed to create checkout session\"}",
+      "timestamp": "2025-10-26T20:09:33.978399"
+    },
+    {
+      "test": "Webhook Preapproval Handler",
+      "success": true,
+      "message": "Webhook processed successfully",
+      "details": null,
+      "timestamp": "2025-10-26T20:09:34.121532"
+    },
+    {
+      "test": "Webhook Recurring Payment Handler",
+      "success": true,
+      "message": "Recurring payment webhook processed successfully",
+      "details": null,
+      "timestamp": "2025-10-26T20:09:34.313800"
+    },
+    {
+      "test": "Subscription Status Check",
+      "success": true,
+      "message": "Status retrieved: free_trial, has_subscription: True",
+      "details": null,
+      "timestamp": "2025-10-26T20:09:34.350911"
+    },
+    {
+      "test": "Checkout Status Check",
+      "success": false,
+      "message": "Failed to get checkout status, code: 500",
+      "details": "{\"detail\":\"Failed to get checkout status\"}",
+      "timestamp": "2025-10-26T20:09:34.434598"
+    }
+  ]
+}
