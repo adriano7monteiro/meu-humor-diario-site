@@ -890,7 +890,7 @@ async def create_checkout_session(request: CreateCheckoutRequest, current_user: 
         transaction = PaymentTransaction(
             user_id=current_user.id,
             plan_id=request.plan_id,
-            stripe_session_id=preapproval["id"],  # Store preapproval ID
+            stripe_session_id=preapproval_id,  # Store preapproval ID
             amount=plan['price'],
             currency="brl",
             payment_status="pending",
@@ -898,14 +898,14 @@ async def create_checkout_session(request: CreateCheckoutRequest, current_user: 
                 "user_id": current_user.id,
                 "plan_id": request.plan_id,
                 "plan_name": plan['name'],
-                "preapproval_id": preapproval["id"],
+                "preapproval_id": preapproval_id,
                 "subscription_type": "recurring"
             }
         )
         
         await db.payment_transactions.insert_one(transaction.dict())
         
-        return {"checkout_url": preapproval["init_point"], "session_id": preapproval["id"]}
+        return {"checkout_url": checkout_url, "session_id": preapproval_id}
         
     except HTTPException:
         raise
