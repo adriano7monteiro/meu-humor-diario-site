@@ -836,7 +836,8 @@ async def create_checkout_session(request: CreateCheckoutRequest, current_user: 
         
         # Calculate start and end dates
         from datetime import datetime, timedelta
-        start_date = datetime.utcnow()
+        # Add 5 minutes buffer to ensure it's always in the future
+        start_date = datetime.utcnow() + timedelta(minutes=5)
         # Convert to ISO 8601 format that Mercado Pago expects: YYYY-MM-DDTHH:mm:ss.000Z
         start_date_str = start_date.strftime("%Y-%m-%dT%H:%M:%S.000Z")
         
