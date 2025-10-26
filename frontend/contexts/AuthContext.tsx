@@ -34,7 +34,7 @@ const AuthContext = createContext<AuthContextData>({} as AuthContextData);
 const API_BASE_URL =
   Constants.expoConfig?.extra?.EXPO_PUBLIC_BACKEND_URL ||
   process.env.EXPO_PUBLIC_BACKEND_URL ||
-  'https://vamos-comecar-2.preview.emergentagent.com';
+  'https://humor-cloud.preview.emergentagent.com';
 
 console.log('🌐 API Base URL:', API_BASE_URL);
 
