@@ -879,11 +879,11 @@ async def create_checkout_session(request: CreateCheckoutRequest, current_user: 
 async def get_checkout_status(session_id: str, current_user: User = Depends(get_current_user)):
     """Get status of a checkout session"""
     try:
-        # Initialize Stripe checkout
-        stripe_checkout = StripeCheckout(api_key=STRIPE_API_KEY, webhook_url="")
+        if not STRIPE_API_KEY:
+            raise HTTPException(status_code=500, detail="Stripe not configured")
         
-        # Get checkout status from Stripe
-        status_response = await stripe_checkout.get_checkout_status(session_id)
+        # Get checkout session from Stripe
+        session = stripe.checkout.Session.retrieve(session_id)
         
         # Get current transaction
         transaction = await db.payment_transactions.find_one({"stripe_session_id": session_id})
@@ -892,7 +892,7 @@ async def get_checkout_status(session_id: str, current_user: User = Depends(get_
             raise HTTPException(status_code=404, detail="Transaction not found")
         
         # If payment is completed but transaction is still pending, process it
-        if status_response.payment_status == "paid" and transaction.get("payment_status") == "pending":
+        if session.payment_status == "paid" and transaction.get("payment_status") == "pending":
             logger.info(f"Processing completed payment for session {session_id}")
             
             # Update transaction status
@@ -912,20 +912,20 @@ async def get_checkout_status(session_id: str, current_user: User = Depends(get_
                 logger.error(f"Failed to activate subscription for user {transaction['user_id']}")
         
         # Update transaction with current status if needed
-        elif transaction.get("payment_status") != status_response.payment_status:
+        elif transaction.get("payment_status") != session.payment_status:
             await db.payment_transactions.update_one(
                 {"stripe_session_id": session_id},
                 {"$set": {
-                    "payment_status": status_response.payment_status,
+                    "payment_status": session.payment_status,
                     "updated_at": datetime.utcnow()
                 }}
             )
         
         return {
-            "status": status_response.status,
-            "payment_status": status_response.payment_status,
-            "amount_total": status_response.amount_total,
-            "currency": status_response.currency
+            "status": session.status,
+            "payment_status": session.payment_status,
+            "amount_total": session.amount_total,
+            "currency": session.currency
         }
         
     except Exception as e:
