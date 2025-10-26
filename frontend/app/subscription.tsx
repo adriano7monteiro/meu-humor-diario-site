@@ -246,7 +246,7 @@ export default function SubscriptionScreen() {
     }
   };
 
-  // Check for session_id in URL (return from Stripe)
+  // Check for session_id in URL (return from Mercado Pago)
   useEffect(() => {
     if (Platform.OS === 'web') {
       const urlParams = new URLSearchParams(window.location.search);
