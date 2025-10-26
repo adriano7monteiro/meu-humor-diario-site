@@ -785,11 +785,13 @@ async def get_subscription_status(current_user: User = Depends(get_current_user)
         now = datetime.utcnow()
         
         if subscription.status == SubscriptionStatus.FREE_TRIAL:
-            days_remaining = (subscription.free_trial_end - now).days
+            time_remaining = subscription.free_trial_end - now
+            hours_remaining = time_remaining.total_seconds() / 3600
+            days_remaining = int(hours_remaining / 24) + (1 if hours_remaining % 24 > 0 else 0)  # Round up
             return {
-                "has_subscription": days_remaining > 0,
+                "has_subscription": subscription.free_trial_end > now,
                 "status": "free_trial",
-                "days_remaining": max(0, days_remaining),
+                "days_remaining": max(1, days_remaining),  # At least 1 day if still active
                 "is_trial": True,
                 "plan_name": "Período Gratuito",
                 "end_date": subscription.free_trial_end.isoformat()
