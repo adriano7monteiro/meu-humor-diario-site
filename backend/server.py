@@ -2396,24 +2396,33 @@ async def get_checkout_status(
 async def stripe_webhook(request: Request):
     """Handle Stripe webhooks"""
     try:
-        # Get request body and headers
+        # Get request body
         body = await request.body()
         signature = request.headers.get("Stripe-Signature")
         
-        # Initialize Stripe checkout
-        stripe_checkout = StripeCheckout(api_key=STRIPE_API_KEY, webhook_url="")
+        if not STRIPE_API_KEY:
+            raise HTTPException(status_code=500, detail="Stripe not configured")
         
-        # Handle webhook
-        webhook_response = await stripe_checkout.handle_webhook(body, signature)
+        # Parse webhook event
+        try:
+            event = stripe.Event.construct_from(
+                json.loads(body), stripe.api_key
+            )
+        except ValueError:
+            raise HTTPException(status_code=400, detail="Invalid payload")
         
-        # Update transaction based on webhook event
-        if webhook_response.event_type == "checkout.session.completed":
+        # Handle the event
+        if event['type'] == 'checkout.session.completed':
+            session = event['data']['object']
+            session_id = session['id']
+            
+            # Update transaction
             await db.payment_transactions.update_one(
-                {"session_id": webhook_response.session_id},
+                {"session_id": session_id},
                 {
                     "$set": {
-                        "payment_status": webhook_response.payment_status,
-                        "status": "completed" if webhook_response.payment_status == "paid" else "failed",
+                        "payment_status": "paid",
+                        "status": "completed",
                         "updated_at": datetime.utcnow()
                     }
                 }
