@@ -27,7 +27,7 @@ interface UserStats {
 }
 
 // For web, always use relative URLs that proxy through Expo
-const API_BASE_URL = Platform.OS === 'web' ? '' : 'http://localhost:8001';
+const API_BASE_URL = Constants.expoConfig?.extra?.EXPO_PUBLIC_BACKEND_URL || process.env.EXPO_PUBLIC_BACKEND_URL || '';
 console.log('🌐 Profile API Base URL:', API_BASE_URL);
 
 export default function ProfileScreen() {
