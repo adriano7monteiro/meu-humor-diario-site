@@ -16,8 +16,11 @@ import { LinearGradient } from 'expo-linear-gradient';
 
 export default function HomeScreen() {
   const { user, signOut } = useAuth();
-  const { subscriptionStatus } = useSubscription();
+  const { subscriptionStatus, loading } = useSubscription();
   const router = useRouter();
+
+  console.log('🏠 Home - subscriptionStatus:', subscriptionStatus);
+  console.log('🏠 Home - loading:', loading);
 
   const handleSignOut = () => {
     Alert.alert(
