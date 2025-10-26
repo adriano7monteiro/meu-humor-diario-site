@@ -22,23 +22,36 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
   const [subscriptionStatus, setSubscriptionStatus] = useState<SubscriptionStatus | null>(null);
   const [loading, setLoading] = useState(false);
 
-  // Always return unlimited access - subscription checks disabled
+  // Fetch real subscription status from API
   useEffect(() => {
     if (user) {
-      setSubscriptionStatus({
-        has_subscription: true,
-        status: 'unlimited',
-        days_remaining: 999,
-        is_trial: false,
-        plan_name: 'Acesso Completo'
-      });
+      refreshSubscription();
     } else {
       setSubscriptionStatus(null);
     }
   }, [user]);
 
   async function refreshSubscription() {
-    // No-op - subscription checks disabled
+    if (!user) return;
+    
+    try {
+      setLoading(true);
+      const { api } = await import('./AuthContext');
+      const response = await api.get('/api/subscription/status');
+      setSubscriptionStatus(response.data);
+    } catch (error) {
+      console.error('Error fetching subscription status:', error);
+      // If error, assume no subscription
+      setSubscriptionStatus({
+        has_subscription: false,
+        status: 'none',
+        days_remaining: 0,
+        is_trial: false,
+        plan_name: null
+      });
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (

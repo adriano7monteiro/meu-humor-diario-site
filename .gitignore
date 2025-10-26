@@ -141,6 +141,14 @@ android-sdk/ -e
 # Environment files
 *.env
 *.env.*
+-e 
+# Environment files
+*.env
+*.env.*
+-e 
+# Environment files
+*.env
+*.env.*
 frontend/.metro-cache
 frontend/.metro-cache/cache/00/6e2226df44f59749f72fb9cced83725215c46ff7e4acb5fb140887f062dfb66126676c
 frontend/.metro-cache/cache/00/9b2f531ebb6758758110e88b70ab2fe6b562c4b97ee7cf81df872d3284a61abd9bb7c8
