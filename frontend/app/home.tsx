@@ -96,7 +96,7 @@ export default function HomeScreen() {
       </View>
 
       {/* Subscription Status Card */}
-      {subscriptionStatus && (
+      {subscriptionStatus && subscriptionStatus.has_subscription && (
         <TouchableOpacity
           style={styles.subscriptionCard}
           onPress={() => router.push('/subscription')}
@@ -117,7 +117,7 @@ export default function HomeScreen() {
                     {subscriptionStatus.is_trial ? 'Período Gratuito' : 'Assinatura Ativa'}
                   </Text>
                   <Text style={styles.subscriptionSubtitle}>
-                    {subscriptionStatus.days_remaining} dias restantes
+                    {subscriptionStatus.days_remaining} {subscriptionStatus.days_remaining === 1 ? 'dia restante' : 'dias restantes'}
                   </Text>
                 </View>
               </View>
