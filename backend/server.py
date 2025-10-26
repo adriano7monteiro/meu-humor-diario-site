@@ -837,8 +837,8 @@ async def create_checkout_session(request: CreateCheckoutRequest, current_user: 
         # Calculate start and end dates
         from datetime import datetime, timedelta
         start_date = datetime.utcnow()
-        # Convert to ISO format with timezone
-        start_date_str = start_date.strftime("%Y-%m-%dT%H:%M:%S") + "-03:00"
+        # Convert to ISO format with timezone (Mercado Pago requires ISO 8601 format with milliseconds)
+        start_date_str = start_date.isoformat() + "Z"  # Z indicates UTC timezone
         
         # Create preapproval (recurring subscription)
         preapproval_data = {
