@@ -30,8 +30,8 @@ db = client.get_database('mental_health_app')
 
 # Stripe configuration
 STRIPE_API_KEY = os.environ.get('STRIPE_API_KEY')
-if not STRIPE_API_KEY:
-    raise ValueError("STRIPE_API_KEY must be set in environment variables")
+if STRIPE_API_KEY:
+    stripe.api_key = STRIPE_API_KEY
 
 # Subscription-related classes
 class PlanType(str, Enum):
