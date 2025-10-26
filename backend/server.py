@@ -14,7 +14,7 @@ import bcrypt
 from jose import JWTError, jwt
 import re
 from emergentintegrations.payments.stripe.checkout import StripeCheckout, CheckoutSessionResponse, CheckoutStatusResponse, CheckoutSessionRequest
-from emergentintegrations.llm.chat import LlmChat, UserMessage
+from openai import AsyncOpenAI
 from models.chat import ChatMessage, ChatConversation, SendMessageRequest, ChatResponse, MessageRole
 from models.missions import Mission, MissionCategory, MissionDifficulty, DailyMissionSet, UserMissionProgress
 from models.payments import PaymentTransaction, EbookPackage, EBOOK_PACKAGES
