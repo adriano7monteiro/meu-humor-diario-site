@@ -859,9 +859,21 @@ async def create_checkout_session(request: CreateCheckoutRequest, current_user: 
         logger.info(f"Creating preapproval for user {current_user.email}: {preapproval_data}")
         
         preapproval_response = sdk.preapproval().create(preapproval_data)
+        logger.info(f"Full preapproval response: {preapproval_response}")
+        
+        # Check response structure
+        if "response" not in preapproval_response:
+            logger.error(f"Unexpected response structure: {preapproval_response}")
+            raise HTTPException(status_code=500, detail="Invalid Mercado Pago response")
+        
         preapproval = preapproval_response["response"]
         
+        logger.info(f"Preapproval object: {preapproval}")
         logger.info(f"Preapproval created: {preapproval.get('id')}")
+        
+        if not preapproval.get('id'):
+            logger.error(f"Preapproval ID is None. Full response: {preapproval}")
+            raise HTTPException(status_code=500, detail="Failed to get preapproval ID from Mercado Pago")
         
         # Create payment transaction record
         transaction = PaymentTransaction(
