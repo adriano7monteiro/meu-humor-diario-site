@@ -15,7 +15,6 @@ interface User {
 interface AuthContextData {
   user: User | null;
   loading: boolean;
-  token: string | null;
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (name: string, email: string, password: string, confirmPassword: string) => Promise<void>;
   signOut: () => Promise<void>;
@@ -25,24 +24,11 @@ interface AuthContextData {
   api: any; // Axios instance for API calls
 }
 
-const AuthContext = createContext<AuthContextData>({
-  user: null,
-  loading: true,
-  token: null,
-  signIn: async () => {},
-  signUp: async () => {},
-  signOut: async () => {},
-  enableNotifications: async () => false,
-  disableNotifications: async () => {},
-  areNotificationsEnabled: async () => false,
-  api: null,
-});
+const AuthContext = createContext<AuthContextData>({} as AuthContextData);
 
-// Always use environment variable for backend URL
-const API_BASE_URL = Constants.expoConfig?.extra?.EXPO_PUBLIC_BACKEND_URL || process.env.EXPO_PUBLIC_BACKEND_URL || 'https://vamos-comecar-2.preview.emergentagent.com';
+// For web, always use relative URLs that proxy through Expo
+const API_BASE_URL = Platform.OS === 'web' ? '' : 'http://localhost:8001';
 console.log('🌐 API Base URL:', API_BASE_URL);
-console.log('🌐 Constants.expoConfig?.extra:', Constants.expoConfig?.extra);
-console.log('🌐 process.env.EXPO_PUBLIC_BACKEND_URL:', process.env.EXPO_PUBLIC_BACKEND_URL);
 console.log('🌐 Platform:', Platform.OS);
 
 // Create axios instance
@@ -94,7 +80,7 @@ api.interceptors.response.use(
   }
 );
 
-export function AuthProvider({ children }: { children: any }) {
+export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -328,7 +314,6 @@ export function AuthProvider({ children }: { children: any }) {
       value={{
         user,
         loading,
-        token,
         signIn,
         signUp,
         signOut,
