@@ -83,7 +83,7 @@ api.interceptors.response.use(
   }
 );
 
-export function AuthProvider({ children }: PropsWithChildren) {
+export function AuthProvider({ children }: { children: any }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
