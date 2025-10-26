@@ -854,19 +854,20 @@ async def create_checkout_session(request: CreateCheckoutRequest, current_user: 
         transaction = PaymentTransaction(
             user_id=current_user.id,
             plan_id=request.plan_id,
-            stripe_session_id=session.session_id,
+            stripe_session_id=session.id,
             amount=plan['price'],
             currency="brl",
             payment_status="pending",
-            metadata=checkout_request.metadata
+            metadata={
+                "user_id": current_user.id,
+                "plan_id": request.plan_id,
+                "plan_name": plan['name']
+            }
         )
         
         await db.payment_transactions.insert_one(transaction.dict())
         
-        return {
-            "url": session.url,
-            "session_id": session.session_id
-        }
+        return {"checkout_url": session.url, "session_id": session.id}
         
     except HTTPException:
         raise
