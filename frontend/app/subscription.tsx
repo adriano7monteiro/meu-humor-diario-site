@@ -252,7 +252,7 @@ export default function SubscriptionScreen() {
       const urlParams = new URLSearchParams(window.location.search);
       const sessionId = urlParams.get('session_id');
       if (sessionId) {
-        console.log('🔙 Returned from Stripe with session:', sessionId);
+        console.log('🔙 Returned from Mercado Pago with session:', sessionId);
         
         // Clear URL parameters immediately
         window.history.replaceState({}, document.title, window.location.pathname);
