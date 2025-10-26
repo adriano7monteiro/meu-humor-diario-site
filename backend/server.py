@@ -2557,18 +2557,27 @@ async def create_corporate_checkout(request: CorporateCheckoutRequest):
         price_per_employee = plan_prices[request.plan]
         total_amount = price_per_employee * request.employees
         
-        # Initialize Stripe checkout
-        webhook_url = f"{request.origin_url}/api/webhook/stripe/corporate"
-        stripe_checkout = StripeCheckout(api_key=STRIPE_API_KEY, webhook_url=webhook_url)
+        # Create Stripe checkout session
+        if not STRIPE_API_KEY:
+            raise HTTPException(status_code=500, detail="Stripe not configured")
         
-        # Create checkout session URLs
         success_url = f"{request.origin_url}/corporate-success?session_id={{CHECKOUT_SESSION_ID}}"
         cancel_url = f"{request.origin_url}"
         
-        # Create checkout session request
-        checkout_request = CheckoutSessionRequest(
-            amount=total_amount,
-            currency="brl",
+        session = stripe.checkout.Session.create(
+            payment_method_types=['card'],
+            line_items=[{
+                'price_data': {
+                    'currency': 'brl',
+                    'unit_amount': int(total_amount * 100),
+                    'product_data': {
+                        'name': f'Licença Corporativa - Plano {request.plan.capitalize()}',
+                        'description': f'{request.employees} funcionários'
+                    },
+                },
+                'quantity': 1,
+            }],
+            mode='payment',
             success_url=success_url,
             cancel_url=cancel_url,
             metadata={
@@ -2582,9 +2591,6 @@ async def create_corporate_checkout(request: CorporateCheckoutRequest):
                 "price_per_employee": str(price_per_employee)
             }
         )
-        
-        # Create session with Stripe
-        session = await stripe_checkout.create_checkout_session(checkout_request)
         
         # Create corporate payment transaction record
         transaction = {
