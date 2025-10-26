@@ -956,43 +956,109 @@ async def mercadopago_webhook(request: Request):
         
         logger.info(f"Received Mercado Pago webhook: {data}")
         
-        # Handle the notification
-        if data.get('type') == 'payment':
+        # Handle preapproval notifications (recurring subscriptions)
+        if data.get('type') == 'subscription_preapproval' or data.get('action') == 'payment.updated':
+            preapproval_id = data.get('data', {}).get('id')
+            
+            if preapproval_id:
+                # Get preapproval details from Mercado Pago
+                try:
+                    preapproval_info = sdk.preapproval().get(preapproval_id)
+                    preapproval = preapproval_info["response"]
+                    
+                    # Find the transaction using preapproval_id
+                    transaction = await db.payment_transactions.find_one({
+                        "stripe_session_id": preapproval_id
+                    })
+                    
+                    if transaction:
+                        preapproval_status = preapproval.get('status')
+                        
+                        # Update transaction based on preapproval status
+                        if preapproval_status == 'authorized':
+                            await db.payment_transactions.update_one(
+                                {"stripe_session_id": preapproval_id},
+                                {"$set": {
+                                    "payment_status": "paid",
+                                    "updated_at": datetime.utcnow()
+                                }}
+                            )
+                            
+                            # Activate subscription
+                            await activate_subscription(transaction['user_id'], transaction['plan_id'])
+                            logger.info(f"Subscription activated for user {transaction['user_id']} via preapproval")
+                        
+                        elif preapproval_status in ['pending', 'paused']:
+                            await db.payment_transactions.update_one(
+                                {"stripe_session_id": preapproval_id},
+                                {"$set": {
+                                    "payment_status": "pending",
+                                    "updated_at": datetime.utcnow()
+                                }}
+                            )
+                        
+                        elif preapproval_status in ['cancelled', 'finished']:
+                            await db.payment_transactions.update_one(
+                                {"stripe_session_id": preapproval_id},
+                                {"$set": {
+                                    "payment_status": "failed",
+                                    "updated_at": datetime.utcnow()
+                                }}
+                            )
+                            
+                except Exception as e:
+                    logger.error(f"Error processing preapproval webhook: {e}")
+        
+        # Handle regular payment notifications (for recurring charges)
+        elif data.get('type') == 'payment':
             payment_id = data['data']['id']
             
             # Get payment details from Mercado Pago
             payment_info = sdk.payment().get(payment_id)
             payment = payment_info["response"]
             
-            # Find the transaction using preference_id or external_reference
-            preference_id = payment.get('external_reference') or payment.get('metadata', {}).get('preference_id')
+            # Check if this is a preapproval payment
+            preapproval_id = payment.get('preapproval_id')
             
-            transaction = await db.payment_transactions.find_one({
-                "stripe_session_id": preference_id  # Reusing field for MP preference_id
-            })
-            
-            if transaction:
-                # Update transaction status based on payment status
-                payment_status = payment['status']
+            if preapproval_id:
+                # This is a recurring payment from a preapproval
+                transaction = await db.payment_transactions.find_one({
+                    "stripe_session_id": preapproval_id
+                })
                 
-                if payment_status == 'approved':
-                    status = "paid"
-                elif payment_status in ['pending', 'in_process', 'in_mediation']:
-                    status = "pending"
-                else:
-                    status = "failed"
+                if transaction and payment['status'] == 'approved':
+                    # Extend subscription for another period
+                    await activate_subscription(transaction['user_id'], transaction['plan_id'])
+                    logger.info(f"Subscription renewed for user {transaction['user_id']} via recurring payment")
+            else:
+                # Regular one-time payment (legacy)
+                preference_id = payment.get('external_reference') or payment.get('metadata', {}).get('preference_id')
                 
-                await db.payment_transactions.update_one(
-                    {"stripe_session_id": preference_id},
-                    {"$set": {
-                        "payment_status": "paid",
-                        "updated_at": datetime.utcnow()
-                    }}
-                )
+                transaction = await db.payment_transactions.find_one({
+                    "stripe_session_id": preference_id
+                })
                 
-                # Activate subscription
-                await activate_subscription(transaction['user_id'], transaction['plan_id'])
-                logger.info(f"Subscription activated for user {transaction['user_id']}")
+                if transaction:
+                    payment_status = payment['status']
+                    
+                    if payment_status == 'approved':
+                        status = "paid"
+                    elif payment_status in ['pending', 'in_process', 'in_mediation']:
+                        status = "pending"
+                    else:
+                        status = "failed"
+                    
+                    await db.payment_transactions.update_one(
+                        {"stripe_session_id": preference_id},
+                        {"$set": {
+                            "payment_status": status,
+                            "updated_at": datetime.utcnow()
+                        }}
+                    )
+                    
+                    if status == "paid":
+                        await activate_subscription(transaction['user_id'], transaction['plan_id'])
+                        logger.info(f"Subscription activated for user {transaction['user_id']}")
         
         return {"status": "success"}
         
