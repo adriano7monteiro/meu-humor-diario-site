@@ -1,0 +1,174 @@
+<analysis>
+The previous AI engineer successfully initiated development by cloning the user's  React Native project. Key tasks included migrating the application to a new codebase, preparing it for Heroku deployment (frontend and backend), replacing the LLM integration from Emergent to OpenAI, and switching the payment gateway from Stripe to Mercado Pago for subscriptions. Significant effort was spent debugging frontend display issues related to subscription status, API URL configuration, and React context errors. The engineer also addressed an initial bug where new users automatically received a free trial. The current focus is on implementing Mercado Pago's recurring payment preapproval API, a task that is currently in progress. Challenges included Git credential issues, persistent local caching (Metro bundler), and correctly configuring environment variables across platforms and services.
+</analysis>
+
+<product_requirements>
+The user's core request was to migrate an existing React Native project (, later ) into the provided Expo template environment. Subsequent explicit requests include:
+1.  **Deployment**: Prepare the full-stack application for deployment on Heroku, specifically using the Heroku dashboard interface. This involved creating necessary s, , updating  scripts, and configuring , , , , , , , and  via Heroku Config Vars.
+2.  **LLM Integration**: Replace the  LLM with direct **OpenAI** API calls in the backend, utilizing a user-provided API key.
+3.  **Payment Gateway**: Replace **Stripe** payment integration with **Mercado Pago** for subscription payments. The user explicitly requested to focus only on subscriptions, not other payment types like ebooks or corporate checkout.
+4.  **Subscription Logic**:
+    *   Initially, new user accounts were inadvertently created with an active subscription. This was fixed to prevent automatic subscriptions.
+    *   A new requirement emerged for new users to receive a **1-day free trial**, which should be reflected on the home screen.
+5.  **Frontend Display & Functionality**: Ensure the subscription status card (including trial days) is correctly displayed on the home screen. Ensure the subscription checkout process (Mercado Pago) correctly redirects users on both mobile (Android emulator) and web platforms.
+6.  **Recurring Payments**: Implement **recurring subscription payments** using Mercado Pago's preapproval API.
+</product_requirements>
+
+<key_technical_concepts>
+- **Expo & React Native**: Mobile app development framework, cross-platform UI.
+- **Expo Router**: File-based routing for navigation.
+- **FastAPI**: Python backend framework for REST APIs.
+- **MongoDB**: NoSQL database for data storage.
+- **Heroku Deployment**: Using , buildpacks (, , ), Config Vars.
+- **Environment Variables**: ,   for , .
+- **OpenAI API**: Direct integration for LLM chat functionality.
+- **Mercado Pago API**: SDK for payment processing, including preapproval (recurring payments) and webhooks.
+- **React Context**: For state management (authentication, subscription status).
+- **Axios**: HTTP client for API requests.
+- **Git**: Version control (cloning, committing, pushing).
+</key_technical_concepts>
+
+<code_architecture>
+The application follows a monorepo structure with distinct  and  directories at the root level of .
+
+
+
+**Key Files and Changes:**
+
+-   :
+    -   **Importance**: Contains all backend API logic, including user authentication, subscription management, LLM chat, and payment processing.
+    -   **Changes**:
+        -   Replaced  LLM calls with usage: openai [-h] [-v] [-b API_BASE] [-k API_KEY] [-p PROXY [PROXY ...]]
+              [-o ORGANIZATION] [-t {openai,azure}]
+              [--api-version API_VERSION] [--azure-endpoint AZURE_ENDPOINT]
+              [--azure-ad-token AZURE_AD_TOKEN] [-V]
+              {api,tools,migrate,grit} ...
+
+positional arguments:
+  {api,tools,migrate,grit}
+    api                 Direct API calls
+    tools               Client side tools for convenience
+
+options:
+  -h, --help            show this help message and exit
+  -v, --verbose         Set verbosity.
+  -b API_BASE, --api-base API_BASE
+                        What API base url to use.
+  -k API_KEY, --api-key API_KEY
+                        What API key to use.
+  -p PROXY [PROXY ...], --proxy PROXY [PROXY ...]
+                        What proxy to use.
+  -o ORGANIZATION, --organization ORGANIZATION
+                        Which organization to run as (will use your default
+                        organization if not specified)
+  -t {openai,azure}, --api-type {openai,azure}
+                        The backend API to call, must be `openai` or `azure`
+  --api-version API_VERSION
+                        The Azure API version, e.g.
+                        'https://learn.microsoft.com/en-us/azure/ai-
+                        services/openai/reference#rest-api-versioning'
+  --azure-endpoint AZURE_ENDPOINT
+                        The Azure endpoint, e.g.
+                        'https://endpoint.openai.azure.com'
+  --azure-ad-token AZURE_AD_TOKEN
+                        A token from Azure Active Directory,
+                        https://www.microsoft.com/en-
+                        us/security/business/identity-access/microsoft-entra-
+                        id
+  -V, --version         show program's version number and exit SDK, migrating from Gemini 2.0 Flash to GPT-4o-mini.
+        -   Replaced Stripe payment processing with  SDK for subscription checkout and webhooks.
+        -   Modified user registration to include a 1-day free trial.
+        -   Corrected user ID retrieval logic () to ensure consistency between user and subscription records.
+        -   Adjusted free trial duration calculation to consider sub-day periods.
+-   :
+    -   **Importance**: Lists all Python dependencies required for the FastAPI backend.
+    -   **Changes**: Added usage: openai [-h] [-v] [-b API_BASE] [-k API_KEY] [-p PROXY [PROXY ...]]
+              [-o ORGANIZATION] [-t {openai,azure}]
+              [--api-version API_VERSION] [--azure-endpoint AZURE_ENDPOINT]
+              [--azure-ad-token AZURE_AD_TOKEN] [-V]
+              {api,tools,migrate,grit} ...
+
+positional arguments:
+  {api,tools,migrate,grit}
+    api                 Direct API calls
+    tools               Client side tools for convenience
+
+options:
+  -h, --help            show this help message and exit
+  -v, --verbose         Set verbosity.
+  -b API_BASE, --api-base API_BASE
+                        What API base url to use.
+  -k API_KEY, --api-key API_KEY
+                        What API key to use.
+  -p PROXY [PROXY ...], --proxy PROXY [PROXY ...]
+                        What proxy to use.
+  -o ORGANIZATION, --organization ORGANIZATION
+                        Which organization to run as (will use your default
+                        organization if not specified)
+  -t {openai,azure}, --api-type {openai,azure}
+                        The backend API to call, must be `openai` or `azure`
+  --api-version API_VERSION
+                        The Azure API version, e.g.
+                        'https://learn.microsoft.com/en-us/azure/ai-
+                        services/openai/reference#rest-api-versioning'
+  --azure-endpoint AZURE_ENDPOINT
+                        The Azure endpoint, e.g.
+                        'https://endpoint.openai.azure.com'
+  --azure-ad-token AZURE_AD_TOKEN
+                        A token from Azure Active Directory,
+                        https://www.microsoft.com/en-
+                        us/security/business/identity-access/microsoft-entra-
+                        id
+  -V, --version         show program's version number and exit and , removed  and .
+-   :
+    -   **Importance**: Stores sensitive backend environment variables.
+    -   **Changes**: Updated  to  (user-provided), and added  (user-provided).
+-   :
+    -   **Importance**: Defines frontend project metadata, scripts, and dependencies.
+    -   **Changes**: Added  section to specify Node.js and Yarn versions for Heroku. Modified  and  scripts to use - Making sure project is set up correctly...
+- Making sure project is set up correctly... (instead of ) due to Metro bundler.
+-   :
+    -   **Importance**: Core Expo configuration.
+    -   **Changes**: Added  field to hold  for environment variable access in production/tunnel builds.
+-   :
+    -   **Importance**: Stores frontend-specific environment variables for local development.
+    -   **Changes**: Created this file and added  with a placeholder (expected to be filled by Heroku Config Vars in deployment).
+-   :
+    -   **Importance**: Manages user authentication state, token, and provides an API instance.
+    -   **Changes**:
+        -   Modified  interface to include .
+        -   Ensured the  is correctly provided in the  value.
+        -   Fixed  prop typing (tried , , eventually used ).
+        -   Corrected  determination to consistently use  or .
+        -   Added explicit default values for  to prevent  errors.
+-   :
+    -   **Importance**: Manages the application's subscription status.
+    -   **Changes**:
+        -   Removed hardcoded subscription status (, ) to fetch real data from the backend.
+        -   Corrected  access, including a hardcoded fallback for local development stability.
+-   :
+    -   **Importance**: Displays main user dashboard and subscription status.
+    -   **Changes**: Adjusted logic to correctly render the subscription card based on  from .
+-   :
+    -   **Importance**: Handles display of subscription plans and the payment checkout flow.
+    -   **Changes**:
+        -   Corrected the  function name to .
+        -   Added a filter to remove duplicate plans from the API response to prevent React key errors.
+        -   Fixed the checkout process to correctly use  (from Mercado Pago backend) instead of  (from Stripe).
+        -   Implemented platform-specific redirection for checkout:  for mobile (Android) and  for web.
+</code_architecture>
+
+<pending_tasks>
+- Complete the implementation of Mercado Pago recurring payments using the  API in .
+- The user needs to manually push the recent changes (commits , , , , , , , , , ) to their GitHub repository for Heroku deployment.
+- The user needs to configure the Mercado Pago webhook URL in their Mercado Pago developer panel.
+- Testing the full recurring payment flow after implementation and deployment.
+</pending_tasks>
+
+<current_work>
+The AI engineer is currently in the process of implementing **recurring payments** using the **Mercado Pago preapproval API** in the backend. This involves modifying . The engineer has successfully researched the Mercado Pago preapproval API and made an initial edit (Chat Message 915) to integrate the  SDK for preapproval creation. The specific task at hand is to complete the  statement for the  function to handle the response from the Mercado Pago preapproval API call. This is the direct continuation of replacing the single-payment Mercado Pago integration with a recurring payment system.
+</current_work>
+
+<optional_next_step>
+Complete the return statement for the Mercado Pago preapproval API call in the  function in .
+</optional_next_step>

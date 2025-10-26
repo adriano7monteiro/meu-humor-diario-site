@@ -823,64 +823,66 @@ async def get_subscription_status(current_user: User = Depends(get_current_user)
 
 @api_router.post("/subscription/checkout")
 async def create_checkout_session(request: CreateCheckoutRequest, current_user: User = Depends(get_current_user)):
-    """Create Mercado Pago checkout preference for subscription"""
+    """Create Mercado Pago recurring subscription (preapproval)"""
     try:
         # Get the plan details
         plan = await db.subscription_plans.find_one({"id": request.plan_id, "is_active": True})
         if not plan:
             raise HTTPException(status_code=404, detail="Plan not found")
         
-        # Create Mercado Pago checkout preference
+        # Create Mercado Pago recurring subscription (preapproval)
         if not sdk:
             raise HTTPException(status_code=500, detail="Mercado Pago not configured")
         
-        preference_data = {
-            "items": [{
-                "title": plan['name'],
-                "description": plan.get('description', ''),
-                "quantity": 1,
-                "unit_price": float(plan['price']),
-                "currency_id": "BRL"
-            }],
-            "payer": {
-                "name": current_user.name,
-                "email": current_user.email
+        # Calculate start and end dates
+        from datetime import datetime, timedelta
+        start_date = datetime.utcnow()
+        # Convert to ISO format with timezone
+        start_date_str = start_date.strftime("%Y-%m-%dT%H:%M:%S") + "-03:00"
+        
+        # Create preapproval (recurring subscription)
+        preapproval_data = {
+            "payer_email": current_user.email,
+            "back_url": request.success_url,
+            "reason": f"Assinatura - {plan['name']}",
+            "external_reference": f"{current_user.id}_{plan['id']}_{int(start_date.timestamp())}",
+            "auto_recurring": {
+                "frequency": 1,
+                "frequency_type": "months",
+                "transaction_amount": float(plan['price']),
+                "currency_id": "BRL",
+                "start_date": start_date_str,
             },
-            "back_urls": {
-                "success": request.success_url,
-                "failure": request.cancel_url,
-                "pending": request.cancel_url
-            },
-            "auto_return": "approved",
-            "metadata": {
-                "user_id": current_user.id,
-                "plan_id": request.plan_id,
-                "plan_name": plan['name']
-            },
-            "notification_url": f"{request.success_url.split('/subscription')[0]}/api/webhook/mercadopago"
+            "status": "pending"
         }
         
-        preference_response = sdk.preference().create(preference_data)
-        preference = preference_response["response"]
+        logger.info(f"Creating preapproval for user {current_user.email}: {preapproval_data}")
+        
+        preapproval_response = sdk.preapproval().create(preapproval_data)
+        preapproval = preapproval_response["response"]
+        
+        logger.info(f"Preapproval created: {preapproval.get('id')}")
         
         # Create payment transaction record
         transaction = PaymentTransaction(
             user_id=current_user.id,
             plan_id=request.plan_id,
-            stripe_session_id=preference["id"],  # Reusing field for MP preference_id
+            stripe_session_id=preapproval["id"],  # Store preapproval ID
             amount=plan['price'],
             currency="brl",
             payment_status="pending",
             metadata={
                 "user_id": current_user.id,
                 "plan_id": request.plan_id,
-                "plan_name": plan['name']
+                "plan_name": plan['name'],
+                "preapproval_id": preapproval["id"],
+                "subscription_type": "recurring"
             }
         )
         
         await db.payment_transactions.insert_one(transaction.dict())
         
-        return {"checkout_url": preference["init_point"], "session_id": preference["id"]}
+        return {"checkout_url": preapproval["init_point"], "session_id": preapproval["id"]}
         
     except HTTPException:
         raise
@@ -954,43 +956,109 @@ async def mercadopago_webhook(request: Request):
         
         logger.info(f"Received Mercado Pago webhook: {data}")
         
-        # Handle the notification
-        if data.get('type') == 'payment':
+        # Handle preapproval notifications (recurring subscriptions)
+        if data.get('type') == 'subscription_preapproval' or data.get('action') == 'payment.updated':
+            preapproval_id = data.get('data', {}).get('id')
+            
+            if preapproval_id:
+                # Get preapproval details from Mercado Pago
+                try:
+                    preapproval_info = sdk.preapproval().get(preapproval_id)
+                    preapproval = preapproval_info["response"]
+                    
+                    # Find the transaction using preapproval_id
+                    transaction = await db.payment_transactions.find_one({
+                        "stripe_session_id": preapproval_id
+                    })
+                    
+                    if transaction:
+                        preapproval_status = preapproval.get('status')
+                        
+                        # Update transaction based on preapproval status
+                        if preapproval_status == 'authorized':
+                            await db.payment_transactions.update_one(
+                                {"stripe_session_id": preapproval_id},
+                                {"$set": {
+                                    "payment_status": "paid",
+                                    "updated_at": datetime.utcnow()
+                                }}
+                            )
+                            
+                            # Activate subscription
+                            await activate_subscription(transaction['user_id'], transaction['plan_id'])
+                            logger.info(f"Subscription activated for user {transaction['user_id']} via preapproval")
+                        
+                        elif preapproval_status in ['pending', 'paused']:
+                            await db.payment_transactions.update_one(
+                                {"stripe_session_id": preapproval_id},
+                                {"$set": {
+                                    "payment_status": "pending",
+                                    "updated_at": datetime.utcnow()
+                                }}
+                            )
+                        
+                        elif preapproval_status in ['cancelled', 'finished']:
+                            await db.payment_transactions.update_one(
+                                {"stripe_session_id": preapproval_id},
+                                {"$set": {
+                                    "payment_status": "failed",
+                                    "updated_at": datetime.utcnow()
+                                }}
+                            )
+                            
+                except Exception as e:
+                    logger.error(f"Error processing preapproval webhook: {e}")
+        
+        # Handle regular payment notifications (for recurring charges)
+        elif data.get('type') == 'payment':
             payment_id = data['data']['id']
             
             # Get payment details from Mercado Pago
             payment_info = sdk.payment().get(payment_id)
             payment = payment_info["response"]
             
-            # Find the transaction using preference_id or external_reference
-            preference_id = payment.get('external_reference') or payment.get('metadata', {}).get('preference_id')
+            # Check if this is a preapproval payment
+            preapproval_id = payment.get('preapproval_id')
             
-            transaction = await db.payment_transactions.find_one({
-                "stripe_session_id": preference_id  # Reusing field for MP preference_id
-            })
-            
-            if transaction:
-                # Update transaction status based on payment status
-                payment_status = payment['status']
+            if preapproval_id:
+                # This is a recurring payment from a preapproval
+                transaction = await db.payment_transactions.find_one({
+                    "stripe_session_id": preapproval_id
+                })
                 
-                if payment_status == 'approved':
-                    status = "paid"
-                elif payment_status in ['pending', 'in_process', 'in_mediation']:
-                    status = "pending"
-                else:
-                    status = "failed"
+                if transaction and payment['status'] == 'approved':
+                    # Extend subscription for another period
+                    await activate_subscription(transaction['user_id'], transaction['plan_id'])
+                    logger.info(f"Subscription renewed for user {transaction['user_id']} via recurring payment")
+            else:
+                # Regular one-time payment (legacy)
+                preference_id = payment.get('external_reference') or payment.get('metadata', {}).get('preference_id')
                 
-                await db.payment_transactions.update_one(
-                    {"stripe_session_id": preference_id},
-                    {"$set": {
-                        "payment_status": "paid",
-                        "updated_at": datetime.utcnow()
-                    }}
-                )
+                transaction = await db.payment_transactions.find_one({
+                    "stripe_session_id": preference_id
+                })
                 
-                # Activate subscription
-                await activate_subscription(transaction['user_id'], transaction['plan_id'])
-                logger.info(f"Subscription activated for user {transaction['user_id']}")
+                if transaction:
+                    payment_status = payment['status']
+                    
+                    if payment_status == 'approved':
+                        status = "paid"
+                    elif payment_status in ['pending', 'in_process', 'in_mediation']:
+                        status = "pending"
+                    else:
+                        status = "failed"
+                    
+                    await db.payment_transactions.update_one(
+                        {"stripe_session_id": preference_id},
+                        {"$set": {
+                            "payment_status": status,
+                            "updated_at": datetime.utcnow()
+                        }}
+                    )
+                    
+                    if status == "paid":
+                        await activate_subscription(transaction['user_id'], transaction['plan_id'])
+                        logger.info(f"Subscription activated for user {transaction['user_id']}")
         
         return {"status": "success"}
         

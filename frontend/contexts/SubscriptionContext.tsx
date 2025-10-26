@@ -3,7 +3,7 @@ import { useAuth } from './AuthContext';
 import axios from 'axios';
 import Constants from 'expo-constants';
 
-const API_BASE_URL = Constants.expoConfig?.extra?.EXPO_PUBLIC_BACKEND_URL || process.env.EXPO_PUBLIC_BACKEND_URL || 'https://vamos-comecar-2.preview.emergentagent.com';
+const API_BASE_URL = Constants.expoConfig?.extra?.EXPO_PUBLIC_BACKEND_URL || process.env.EXPO_PUBLIC_BACKEND_URL || 'https://humor-cloud.preview.emergentagent.com';
 
 interface SubscriptionStatus {
   has_subscription: boolean;
