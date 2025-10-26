@@ -2595,7 +2595,7 @@ async def create_corporate_checkout(request: CorporateCheckoutRequest):
         # Create corporate payment transaction record
         transaction = {
             "id": str(uuid.uuid4()),
-            "session_id": session.session_id,
+            "session_id": session.id,
             "type": "corporate_license",
             "company": request.company,
             "contact_name": request.name, 
@@ -2620,7 +2620,7 @@ async def create_corporate_checkout(request: CorporateCheckoutRequest):
         return {
             "success": True,
             "checkout_url": session.url,
-            "session_id": session.session_id
+            "session_id": session.id
         }
         
     except HTTPException:
