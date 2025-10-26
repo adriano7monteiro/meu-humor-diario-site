@@ -306,7 +306,7 @@ async def register_user(user_data: UserCreate):
     await db.users.insert_one(user_dict)
     
     # Create 1-day free trial for new user
-    await create_free_trial(user_data.email)
+    await create_free_trial(user_dict['id'])
     
     # Create access token
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
