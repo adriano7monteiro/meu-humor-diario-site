@@ -37,7 +37,7 @@ interface SubscriptionStatus {
 
 export default function SubscriptionScreen() {
   const { user, api } = useAuth();
-  const { refreshSubscriptionStatus } = useSubscription();
+  const { refreshSubscription } = useSubscription();
   const router = useRouter();
   const [plans, setPlans] = useState<SubscriptionPlan[]>([]);
   const [subscriptionStatus, setSubscriptionStatus] = useState<SubscriptionStatus | null>(null);
@@ -62,7 +62,14 @@ export default function SubscriptionScreen() {
         // The API returns { plans: [...] } so access .plans
         const plansData = plansResponse.data.plans || [];
         console.log('✅ Plans data:', plansData.length, 'plans found');
-        setPlans(plansData);
+        
+        // Remove duplicates based on id
+        const uniquePlans = plansData.filter((plan: any, index: number, self: any[]) => 
+          index === self.findIndex((p: any) => p.id === plan.id)
+        );
+        console.log('✅ Unique plans:', uniquePlans.length);
+        
+        setPlans(uniquePlans);
       } catch (plansError) {
         console.error('❌ Error loading plans:', plansError);
         Alert.alert('Erro', 'Falha ao carregar planos de assinatura');
@@ -177,7 +184,7 @@ export default function SubscriptionScreen() {
         console.log('💰 Payment confirmed! Redirecting to home...');
         
         // Refresh subscription context and local data
-        await refreshSubscriptionStatus();
+        await refreshSubscription();
         await loadData();
         
         Alert.alert(
