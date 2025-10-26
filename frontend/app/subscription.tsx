@@ -118,15 +118,24 @@ export default function SubscriptionScreen() {
 
       const response = await api.post('/api/subscription/checkout', checkoutData);
       
+      console.log('📦 Checkout response:', response.data);
+      
       if (response.data.checkout_url) {
+        console.log('🔗 Checkout URL:', response.data.checkout_url);
+        console.log('🖥️ Platform:', Platform.OS);
+        
         // Redirect to Mercado Pago checkout
         if (Platform.OS === 'web') {
-          // Check if we're in an iframe (like Expo preview)
-          const isInIframe = window !== window.parent;
+          console.log('🌐 Running on web, attempting redirect...');
           
-          if (isInIframe) {
-            // Open in new window/tab to avoid iframe restrictions
-            const newWindow = window.open(response.data.checkout_url, '_blank', 'width=600,height=700');
+          // Try direct redirect first (simpler and more reliable)
+          try {
+            window.location.href = response.data.checkout_url;
+            console.log('✅ Redirect initiated');
+          } catch (error) {
+            console.error('❌ Redirect error:', error);
+            // Fallback: try opening in new tab
+            const newWindow = window.open(response.data.checkout_url, '_blank');
             if (!newWindow) {
               Alert.alert(
                 'Popup Bloqueado',
@@ -139,9 +148,6 @@ export default function SubscriptionScreen() {
                 ]
               );
             }
-          } else {
-            // Direct redirect if not in iframe
-            window.location.href = response.data.checkout_url;
           }
         } else {
           // For mobile (Android/iOS), open in external browser
