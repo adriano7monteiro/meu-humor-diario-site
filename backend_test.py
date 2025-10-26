@@ -124,8 +124,8 @@ class BackendTester:
         try:
             payload = {
                 "plan_id": "monthly",
-                "success_url": "http://localhost:3000/success",
-                "cancel_url": "http://localhost:3000/cancel"
+                "success_url": "https://example.com/success",
+                "cancel_url": "https://example.com/cancel"
             }
             
             response = self.session.post(f"{BACKEND_URL}/subscription/checkout", json=payload)
