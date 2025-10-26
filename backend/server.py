@@ -819,45 +819,51 @@ async def get_subscription_status(current_user: User = Depends(get_current_user)
 
 @api_router.post("/subscription/checkout")
 async def create_checkout_session(request: CreateCheckoutRequest, current_user: User = Depends(get_current_user)):
-    """Create Stripe checkout session for subscription"""
+    """Create Mercado Pago checkout preference for subscription"""
     try:
         # Get the plan details
         plan = await db.subscription_plans.find_one({"id": request.plan_id, "is_active": True})
         if not plan:
             raise HTTPException(status_code=404, detail="Plan not found")
         
-        # Create Stripe checkout session
-        if not STRIPE_API_KEY:
-            raise HTTPException(status_code=500, detail="Stripe not configured")
+        # Create Mercado Pago checkout preference
+        if not sdk:
+            raise HTTPException(status_code=500, detail="Mercado Pago not configured")
         
-        session = stripe.checkout.Session.create(
-            payment_method_types=['card'],
-            line_items=[{
-                'price_data': {
-                    'currency': 'brl',
-                    'unit_amount': int(plan['price'] * 100),  # Convert to cents
-                    'product_data': {
-                        'name': plan['name'],
-                        'description': plan.get('description', '')
-                    },
-                },
-                'quantity': 1,
+        preference_data = {
+            "items": [{
+                "title": plan['name'],
+                "description": plan.get('description', ''),
+                "quantity": 1,
+                "unit_price": float(plan['price']),
+                "currency_id": "BRL"
             }],
-            mode='payment',
-            success_url=request.success_url,
-            cancel_url=request.cancel_url,
-            metadata={
+            "payer": {
+                "name": current_user.name,
+                "email": current_user.email
+            },
+            "back_urls": {
+                "success": request.success_url,
+                "failure": request.cancel_url,
+                "pending": request.cancel_url
+            },
+            "auto_return": "approved",
+            "metadata": {
                 "user_id": current_user.id,
                 "plan_id": request.plan_id,
                 "plan_name": plan['name']
-            }
-        )
+            },
+            "notification_url": f"{request.success_url.split('/subscription')[0]}/api/webhook/mercadopago"
+        }
+        
+        preference_response = sdk.preference().create(preference_data)
+        preference = preference_response["response"]
         
         # Create payment transaction record
         transaction = PaymentTransaction(
             user_id=current_user.id,
             plan_id=request.plan_id,
-            stripe_session_id=session.id,
+            stripe_session_id=preference["id"],  # Reusing field for MP preference_id
             amount=plan['price'],
             currency="brl",
             payment_status="pending",
