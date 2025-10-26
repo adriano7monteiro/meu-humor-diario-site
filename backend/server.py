@@ -276,7 +276,7 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
         raise credentials_exception
     
     return User(
-        id=str(user['_id']),  # Use _id from MongoDB
+        id=user.get('id', str(user['_id'])),  # Prefer 'id' field, fallback to _id
         name=user['name'],
         email=user['email'],
         profile_photo=user.get('profile_photo'),
@@ -304,6 +304,9 @@ async def register_user(user_data: UserCreate):
     }
     
     await db.users.insert_one(user_dict)
+    
+    # Create 1-day free trial for new user
+    await create_free_trial(user_dict['id'])
     
     # Create access token
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
@@ -765,7 +768,9 @@ async def get_subscription_plans():
 async def get_subscription_status(current_user: User = Depends(get_current_user)):
     """Get user's current subscription status"""
     try:
+        logger.info(f"Fetching subscription for user_id: {current_user.id}")
         subscription_data = await db.user_subscriptions.find_one({"user_id": current_user.id})
+        logger.info(f"Subscription data found: {subscription_data}")
         
         if not subscription_data:
             return {
@@ -780,11 +785,13 @@ async def get_subscription_status(current_user: User = Depends(get_current_user)
         now = datetime.utcnow()
         
         if subscription.status == SubscriptionStatus.FREE_TRIAL:
-            days_remaining = (subscription.free_trial_end - now).days
+            time_remaining = subscription.free_trial_end - now
+            hours_remaining = time_remaining.total_seconds() / 3600
+            days_remaining = int(hours_remaining / 24) + (1 if hours_remaining % 24 > 0 else 0)  # Round up
             return {
-                "has_subscription": days_remaining > 0,
+                "has_subscription": subscription.free_trial_end > now,
                 "status": "free_trial",
-                "days_remaining": max(0, days_remaining),
+                "days_remaining": max(1, days_remaining),  # At least 1 day if still active
                 "is_trial": True,
                 "plan_name": "Período Gratuito",
                 "end_date": subscription.free_trial_end.isoformat()
@@ -1053,14 +1060,14 @@ async def initialize_default_plans():
             logger.info(f"Created plan: {plan['name']}")
 
 async def create_free_trial(user_id: str):
-    """Create a 7-day free trial for new user"""
+    """Create a 1-day free trial for new user"""
     try:
         existing = await db.user_subscriptions.find_one({"user_id": user_id})
         if existing:
             return  # User already has a subscription
         
         now = datetime.utcnow()
-        trial_end = now + timedelta(days=7)
+        trial_end = now + timedelta(days=1)  # Changed to 1 day
         
         subscription = {
             "user_id": user_id,
@@ -1075,10 +1082,11 @@ async def create_free_trial(user_id: str):
         }
         
         await db.user_subscriptions.insert_one(subscription)
-        logger.info(f"Created free trial for user: {user_id}")
+        logger.info(f"Created 1-day free trial for user: {user_id}")
         
     except Exception as e:
         logger.error(f"Error creating free trial: {e}")
+
 
 async def activate_subscription(user_id: str, plan_id: str):
     """Activate user subscription after successful payment"""
