@@ -1053,14 +1053,14 @@ async def initialize_default_plans():
             logger.info(f"Created plan: {plan['name']}")
 
 async def create_free_trial(user_id: str):
-    """Create a 7-day free trial for new user"""
+    """Create a 1-day free trial for new user"""
     try:
         existing = await db.user_subscriptions.find_one({"user_id": user_id})
         if existing:
             return  # User already has a subscription
         
         now = datetime.utcnow()
-        trial_end = now + timedelta(days=7)
+        trial_end = now + timedelta(days=1)  # Changed to 1 day
         
         subscription = {
             "user_id": user_id,
@@ -1075,10 +1075,11 @@ async def create_free_trial(user_id: str):
         }
         
         await db.user_subscriptions.insert_one(subscription)
-        logger.info(f"Created free trial for user: {user_id}")
+        logger.info(f"Created 1-day free trial for user: {user_id}")
         
     except Exception as e:
         logger.error(f"Error creating free trial: {e}")
+
 
 async def activate_subscription(user_id: str, plan_id: str):
     """Activate user subscription after successful payment"""
