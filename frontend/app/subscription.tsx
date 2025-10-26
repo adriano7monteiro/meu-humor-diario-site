@@ -259,7 +259,7 @@ export default function SubscriptionScreen() {
         
         // If user is not authenticated, redirect to home with success message
         if (!user) {
-          console.log('🔐 No user found after Stripe, assuming successful payment and redirecting to home');
+          console.log('🔐 No user found after Mercado Pago, assuming successful payment and redirecting to home');
           Alert.alert(
             'Pagamento Processado!',
             'Seu pagamento foi processado. Faça login para acessar sua assinatura.',
