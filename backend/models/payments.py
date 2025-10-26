@@ -6,8 +6,10 @@ from bson import ObjectId
 class PaymentTransaction(BaseModel):
     id: Optional[str] = Field(None, alias="_id")
     user_id: Optional[str] = None
-    session_id: str
+    session_id: Optional[str] = None  # For ebook purchases
+    stripe_session_id: Optional[str] = None  # For subscription purchases
     payment_id: Optional[str] = None
+    plan_id: Optional[str] = None  # For subscription purchases
     amount: float
     currency: str = "brl"
     payment_status: str = "pending"  # pending, paid, failed, expired
